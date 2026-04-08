@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧復健及眼球詮釋辨識系統 (Smart Rehab & Eye-Hand Interpretation System)</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --card-bg: #ffffff;
+        }
+        body {
+            font-family: "Segoe UI", "Microsoft JhengHei", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        section {
+            background: var(--card-bg);
+            padding: 30px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        h2 {
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            color: var(--primary-color);
+        }
+        h3 {
+            color: var(--secondary-color);
+            margin-top: 25px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .feature-card {
+            background: #fdfdfd;
+            border: 1px solid #eee;
+            padding: 20px;
+            border-radius: 6px;
+        }
+        .emoji {
+            font-size: 1.5em;
+            margin-right: 5px;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+            color: #d35400;
+        }
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        .step-list {
+            counter-reset: step;
+            list-style: none;
+            padding: 0;
+        }
+        .step-list > li {
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 20px;
+        }
+        .step-list > li::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 30px;
+            height: 30px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+        }
+        .note {
+            background-color: #e8f4fd;
+            border-left: 5px solid var(--secondary-color);
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>智慧復健及眼球詮釋辨識系統</h1>
+        <p>Smart Rehab & Eye-Hand Interpretation System</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <section id="introduction">
+        <h2>1. 專案簡介 (Introduction)</h2>
+        <p>本專案整合了先進的電腦視覺技術（<strong>MediaPipe</strong>），提供一套非接觸式的智慧復健與輔助溝通系統。系統主要分為三大功能模組：「眼部辨識復健系統」、「手部辨識復健系統」與「腳步辨識復健系統」，旨在協助需要肢體復健或言語溝通輔助的使用者，透過自然的眼球運動、手勢動作或腳步移動來與系統互動。</p>
+        
+        <h3>核心特色</h3>
+        <ul>
+            <li><strong>非接觸式操作</strong>：僅需使用一般攝影機（Webcam），無需昂貴的穿戴式裝置。</li>
+            <li><strong>多模態互動</strong>：支援眼球視線追蹤、眼球手勢指令、手部精細動作（抓取）偵測，以及腳步移動追蹤。</li>
+            <li><strong>即時語音回饋</strong>：動作觸發後提供語音提示，增強互動體驗與溝通效率。</li>
+            <li><strong>遊戲化復健</strong>：透過趣味性的分類遊戲（撿豆子）及步數計數，提升復健意願。</li>
+        </ul>
+    </section>
+
+    <section id="features">
+        <h2>2. 功能說明 (Features)</h2>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>2.1 眼部辨識復健系統</h3>
+                <p>此模組專為眼球靈活度訓練及基礎溝通設計。</p>
+                <ul>
+                    <li><strong>九宮格溝通板</strong>：透過視線停留，可觸發預設的生活用語（如：吃飯、洗澡、不舒服等）。</li>
+                    <li><strong>眼球手勢指令 (Gesture Control)</strong>：系統可辨識特定的眼球連續運動軌跡，快速觸發功能：
+                        <ul>
+                            <li><span class="emoji">↕️</span> <strong>上下掃描</strong>：觸發「喝水」語音。</li>
+                            <li><span class="emoji">↔️</span> <strong>左右掃描</strong>：觸發「吃飯」語音。</li>
+                            <li><span class="emoji">🔄</span> <strong>順時針轉動</strong>：觸發「洗澡」語音。</li>
+                            <li><span class="emoji">🔄</span> <strong>逆時針轉動</strong>：觸發「上廁所」語音。</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>2.2 手部辨識復健系統</h3>
+                <p>此模組專為手部精細動作訓練設計，特別是針對「捏取（Pinch）」動作的練習。</p>
+                <ul>
+                    <li><strong>撿豆子遊戲</strong>：畫面中會出現虛擬豆子與碗，使用者需透過手勢將豆子抓起放入碗中。</li>
+                    <li><strong>手勢偵測</strong>：偵測食指與拇指的距離來判斷是否進行「抓取」。</li>
+                    <li><strong>多種模式</strong>：
+                        <ul>
+                            <li><strong>基本模式</strong>：無限練習，計分累加。</li>
+                            <li><strong>挑戰模式</strong>：包含關卡設計（區分紅綠豆）、限時挑戰與過關分數目標。</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>2.3 腳步辨識復健系統</h3>
+                <p>此模組專為下肢活動能力訓練設計，透過攝影機追蹤腳部移動。</p>
+                <ul>
+                    <li><strong>腳部追蹤</strong>：使用 MediaPipe Pose 偵測腳踝、腳跟、腳尖等 6 個關鍵點。</li>
+                    <li><strong>步數計數</strong>：自動偵測抬腳動作並計算步數。</li>
+                    <li><strong>軌跡視覺化</strong>：即時顯示雙腳移動軌跡，方便觀察動作。</li>
+                    <li><strong>One Euro Filter</strong>：採用動態濾波技術，減少抖動同時保持靈敏度。</li>
+                    <li><strong>距離無關</strong>：使用正規化座標，無視距離與立體空間限制。</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section id="manual">
+        <h2>3. 使用說明 (User Manual)</h2>
+
+        <h3>3.1 啟動系統</h3>
+        <ol class="step-list">
+            <li>執行專案目錄下的 <code>app.py</code>。</li>
+            <li>在主選單畫面中，選擇欲使用的功能：
+                <ul>
+                    <li>點選 <strong>「眼部辨識復健系統」</strong> 按鈕進入眼控模式。</li>
+                    <li>點選 <strong>「手部辨識復健系統」</strong> 按鈕進入手勢遊戲模式。</li>
+                    <li>點選 <strong>「腳步辨識復健系統」</strong> 按鈕進入腳步追蹤模式。</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>3.2 眼部辨識復健系統操作</h3>
+        <ol class="step-list">
+            <li><strong>校正準備</strong>：啟動後請保持頭部穩定，直視螢幕，讓系統捕捉臉部特徵。</li>
+            <li><strong>九宮格操作</strong>：
+                <ul>
+                    <li>移動視線注視螢幕上的九宮格選項。</li>
+                    <li>當視線停留在某個格子一段時間後，格子會變色並播放對應語音。</li>
+                </ul>
+            </li>
+            <li><strong>手勢指令操作</strong>：
+                <ul>
+                    <li>若要快速表達需求，請連續進行眼球運動（如連續快速左右移動眼球）。</li>
+                    <li>當系統偵測到規律軌跡（如連續來回 3 次）時，會自動觸發對應指令。</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>3.3 手部辨識復健系統操作</h3>
+        <ol class="step-list">
+            <li><strong>啟動偵測</strong>：進入介面後，點選 <strong>「▶ 啟動偵測」</strong> 按鈕開啟攝影機。</li>
+            <li><strong>基本操作</strong>：
+                <ul>
+                    <li>將手掌張開面對鏡頭。</li>
+                    <li>移動手部，將畫面上的游標（通常為食指與拇指中心）對準「豆子」。</li>
+                    <li><strong>抓取動作</strong>：將食指與拇指指尖捏合（模擬捏豆子動作）。畫面上會顯示 "GRABBING"。</li>
+                    <li><strong>移動與放置</strong>：保持捏合姿勢，移動手部將豆子拖曳至「碗」的上方。</li>
+                    <li><strong>放開動作</strong>：張開手指，豆子即會落下。若成功落入碗中，分數將會增加並播放音效。</li>
+                </ul>
+            </li>
+            <li><strong>切換模式</strong>：點選 <strong>「切換遊戲模式」</strong> 可挑戰更進階的關卡（如：要在限制時間內只撿綠豆，避開紅豆等）。</li>
+        </ol>
+
+        <h3>3.4 腳步辨識復健系統操作</h3>
+        <ol class="step-list">
+            <li><strong>啟動偵測</strong>：進入介面後，點選 <strong>「▶ 啟動偵測」</strong> 按鈕開啟攝影機。</li>
+            <li><strong>站姿準備</strong>：
+                <ul>
+                    <li>站在攝影機前方，確保雙腳在畫面範圍內。</li>
+                    <li>系統會自動偵測腳踝、腳跟、腳尖等關鍵點。</li>
+                </ul>
+            </li>
+            <li><strong>步伐練習</strong>：
+                <ul>
+                    <li>進行原地踏步或抬腳動作。</li>
+                    <li>系統會自動偵測抬腳動作並計算步數。</li>
+                    <li>每次成功踏步會播放音效回饋。</li>
+                </ul>
+            </li>
+            <li><strong>軌跡觀察</strong>：畫面會即時顯示雙腳的移動軌跡（左腳橘色、右腳藍色）。</li>
+            <li><strong>重置步數</strong>：點選 <strong>「🔄 重置步數」</strong> 可將計數歸零重新開始。</li>
+        </ol>
+    </section>
+
+    <section id="technical">
+        <h2>4. 專案結構與套件需求 (System Requirements)</h2>
+        
+        <div class="note">
+            <strong>套件列表說明：</strong>
+            <ul>
+                <li><code>customtkinter</code>: 用於建立現代化 GUI 介面</li>
+                <li><code>pygame</code>: 用於遊戲與多媒體互動</li>
+                <li><code>mediapipe</code>: Google 開發的機器學習庫，用於眼球與手部追蹤</li>
+                <li><code>opencv-python</code>: 電腦視覺影像處理</li>
+                <li><code>Pillow</code>: 影像處理</li>
+                <li><code>numpy</code>: 數值運算</li>
+            </ul>
+        </div>
+
+        <h3>專案結構參考</h3>
+        <pre><code>project_root/
+├── app.py                # 主程式入口 (啟動器)
+├── gui_module.py         # 眼控復健介面
+├── gui.py                # 手部復健遊戲介面
+├── foot_gui.py           # 腳步復健介面
+├── pygame_module.py      # 眼球遊戲邏輯與辨識核心
+├── eye_tracker.py        # 眼動追蹤核心邏輯
+├── hand_detector.py      # 手勢辨識核心邏輯
+├── foot_detector.py      # 腳步偵測核心邏輯 (含 One Euro Filter)
+├── requirements.txt      # 套件清單
+├── audio/                # 語音與音效檔
+├── image/                # 介面圖片檔
+└── docs/                 # 說明文件</code></pre>
+    </section>
+
+</div>
+
+</body>
+</html>
