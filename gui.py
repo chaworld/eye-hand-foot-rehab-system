@@ -9,6 +9,8 @@ import time
 from tkinter import messagebox
 import pygame
 import os
+from session_logger import SessionLogger
+from voice_assistant import VoiceAssistant
 
 
 class App:
@@ -44,6 +46,19 @@ class App:
         self.score_sound = pygame.mixer.Sound(os.path.join(os.path.dirname(__file__), "audio", "bean.mp3"))
         self.vic = pygame.mixer.Sound(os.path.join(os.path.dirname(__file__), "audio", "vic.mp3"))
         self.lose = pygame.mixer.Sound(os.path.join(os.path.dirname(__file__), "audio", "lose.mp3"))
+
+        self.session_logger = SessionLogger()
+        self.voice_assistant = VoiceAssistant()
+        self.training_start_time = None
+        self.reaction_times = []
+        self.total_trials = 0
+        self.correct_trials = 0
+        self.current_trial_start = None
+        self.feedback_state = None
+        self.feedback_target = None
+        self.feedback_until = 0.0
+        self.last_slow_prompt_time = 0.0
+        self.feedback_duration = 0.35
 
 
         # Scrollable GUI
@@ -117,21 +132,93 @@ class App:
 
         return random.randint(50, w - 50), random.randint(50, h - 130)
 
+    def reset_metrics(self):
+        self.training_start_time = time.time()
+        self.reaction_times = []
+        self.total_trials = 0
+        self.correct_trials = 0
+        self.current_trial_start = None
+
+    def record_reaction(self, success=True):
+        if self.current_trial_start is None:
+            return
+        rt = max(0.0, time.time() - self.current_trial_start)
+        self.reaction_times.append(rt)
+        self.total_trials += 1
+        if success:
+            self.correct_trials += 1
+        self.current_trial_start = None
+
+    def set_feedback(self, feedback):
+        self.feedback_state = feedback
+        self.feedback_target = None
+        self.feedback_until = time.time() + self.feedback_duration
+
+    def set_feedback_with_target(self, feedback, target):
+        self.feedback_state = feedback
+        self.feedback_target = target
+        self.feedback_until = time.time() + self.feedback_duration
+
+    def draw_feedback_overlay(self, frame):
+        if self.feedback_state is None or time.time() > self.feedback_until:
+            self.feedback_state = None
+            self.feedback_target = None
+            return frame
+        color = (0, 220, 0) if self.feedback_state == "success" else (0, 0, 220)
+        scale = 1.25
+        overlay = frame.copy()
+        cv2.rectangle(overlay, (0, 0), (self.frame_width, self.frame_height), color, -1)
+        frame = cv2.addWeighted(overlay, 0.18, frame, 0.82, 0)
+        bx, by = self.feedback_target if self.feedback_target is not None else self.bean_pos
+        radius = int(38 * scale)
+        cv2.circle(frame, (int(bx), int(by)), radius, color, 3)
+        return frame
+
+    def log_session_end(self):
+        if self.training_start_time is None:
+            return None
+        duration = max(0.0, time.time() - self.training_start_time)
+        avg_rt = sum(self.reaction_times) / len(self.reaction_times) if self.reaction_times else None
+        accuracy = (self.correct_trials / self.total_trials) if self.total_trials else 0.0
+        total_score = self.challenge_score if self.game_mode == "challenge" else self.score
+        self.session_logger.log_session(
+            module="hand",
+            mode=self.game_mode,
+            avg_reaction_time_sec=avg_rt,
+            accuracy=accuracy,
+            total_score=total_score,
+            training_duration_sec=duration,
+            total_trials=self.total_trials,
+            correct_trials=self.correct_trials,
+        )
+        self.training_start_time = None
+        return avg_rt, accuracy, total_score, duration
+
     def toggle_tracking(self):
         if not self.running:
             self.tracker = HandTracker()
             self.running = True
+            self.reset_metrics()
             self.btn_toggle.configure(text="■ 停止偵測", fg_color="#ff6b6b", hover_color="#ff8787")
             self.update_frame()
         else:
-            self.running = False
-            if self.tracker:
-                self.tracker.release()
-                self.tracker = None
-            self.label_status.configure(text="狀態：已停止")
-            self.canvas.configure(image=self.blank_ctk_image)
-            self.canvas.image = self.blank_ctk_image
-            self.btn_toggle.configure(text="▶ 啟動偵測", fg_color="#2cc985", hover_color="#2cc985")
+            self.stop_tracking("狀態：已停止")
+
+    def stop_tracking(self, status_text="狀態：已停止"):
+        self.running = False
+        metrics = self.log_session_end()
+        if self.tracker:
+            self.tracker.release()
+            self.tracker = None
+        self.label_status.configure(text=status_text)
+        self.btn_toggle.configure(text="▶ 啟動偵測", fg_color="#2cc985", hover_color="#2cc985")
+        if metrics is not None:
+            avg_rt, accuracy, total_score, duration = metrics
+            rt_text = f"{avg_rt:.2f} 秒" if avg_rt is not None else "--"
+            messagebox.showinfo(
+                "本次訓練結果",
+                f"反應時間(平均)：{rt_text}\n命中率：{accuracy*100:.1f}%\n總分：{total_score}\n訓練時長：{duration:.1f} 秒"
+            )
 
     def paste_pil_on_cv2(self, background, pil_img, x, y):
         pil_img = pil_img.convert("RGBA")
@@ -179,6 +266,7 @@ class App:
             self.challenge_beans.append({'pos': pos, 'picked': False, 'done': False, 'type': 'red', 'move_dir': (random.choice([-1,1]), random.choice([-1,1]))})
         self.challenge_score = 0
         self.challenge_start_time = time.time()
+        self.current_trial_start = time.time()
         # 重置當前抓取中的索引
         self.current_picked_idx = None
         messagebox.showinfo("遊戲模式", f"第{self.level}關開始！在30秒內達到{cfg['score']}分")
@@ -250,6 +338,8 @@ class App:
                     else:
                         frame = self.paste_pil_on_cv2(frame, self.red_bean_img, bx, by)
 
+            frame = self.draw_feedback_overlay(frame)
+
             img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             ctk_img = CTkImage(light_image=img, dark_image=img, size=(self.frame_width, self.frame_height))
             self.canvas.configure(image=ctk_img)
@@ -261,6 +351,7 @@ class App:
     def update_infinite_mode(self, gx, gy):
         if not self.bean_picked and abs(gx - self.bean_pos[0]) < 40 and abs(gy - self.bean_pos[1]) < 40:
             self.bean_picked = True
+            self.current_trial_start = time.time()
 
         if self.bean_picked:
             self.bean_pos = (gx, gy)
@@ -269,6 +360,16 @@ class App:
                 self.label_score.configure(text=f"分數：{self.score}")
                 # 播放得分音效
                 self.score_sound.play()
+                self.record_reaction(success=True)
+                self.set_feedback_with_target("success", self.bean_pos)
+                self.bean_picked = False
+                self.bean_pos = self.random_bean_pos()
+            elif self.current_trial_start is not None and time.time() - self.current_trial_start > 4.0:
+                self.record_reaction(success=False)
+                self.set_feedback_with_target("error", self.bean_pos)
+                if time.time() - self.last_slow_prompt_time > 3.5:
+                    self.voice_assistant.speak_async("動作太慢，請加快")
+                    self.last_slow_prompt_time = time.time()
                 self.bean_picked = False
                 self.bean_pos = self.random_bean_pos()
 
@@ -303,7 +404,6 @@ class App:
             # 若已有被抓取的豆子，僅更新該顆的位置與完成判斷
             if self.current_picked_idx is not None:
                 bean = self.challenge_beans[self.current_picked_idx]
-                bx, by = bean['pos']
                 bean['pos'] = (gx, gy)
                 if abs(gx - self.bowl_pos[0]) < 25 and abs(gy - self.bowl_pos[1]) < 25:
                     bean['done'] = True
@@ -313,9 +413,20 @@ class App:
                         self.challenge_score += 3
                     # 播放得分音效
                     self.score_sound.play()
+                    self.record_reaction(success=True)
+                    self.set_feedback_with_target("success", (gx, gy))
                     bean['picked'] = False
                     # 放下後清除當前抓取，避免同時抓多顆
                     self.current_picked_idx = None
+                    self.current_trial_start = time.time()
+
+        if self.current_trial_start is not None and time.time() - self.current_trial_start > 5.0:
+            self.record_reaction(success=False)
+            self.set_feedback("error")
+            if time.time() - self.last_slow_prompt_time > 3.5:
+                self.voice_assistant.speak_async("動作太慢，請加快")
+                self.last_slow_prompt_time = time.time()
+            self.current_trial_start = time.time()
 
         # 畫面更新
         for bean in self.challenge_beans:
@@ -336,11 +447,11 @@ class App:
             else:
                 self.vic.play()
                 messagebox.showinfo("遊戲模式", "恭喜通關！三關全破！")
-                self.running = False
+                self.stop_tracking("狀態：訓練完成")
         elif elapsed > self.challenge_duration:
             self.lose.play()
             messagebox.showinfo("遊戲模式", f"第{self.level}關失敗，請再接再厲")
-            self.running = False
+            self.stop_tracking("狀態：挑戰時間結束")
         return frame
 
 

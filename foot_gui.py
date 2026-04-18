@@ -7,6 +7,10 @@ import numpy as np
 import time
 import pygame
 import os
+import random
+from tkinter import messagebox
+from session_logger import SessionLogger
+from voice_assistant import VoiceAssistant
 
 
 class FootApp:
@@ -50,6 +54,22 @@ class FootApp:
             self.step_sound = None
             print("⚠️ 找不到步伐音效檔")
 
+        self.session_logger = SessionLogger()
+        self.voice_assistant = VoiceAssistant()
+        self.training_start_time = None
+        self.reaction_times = []
+        self.total_trials = 0
+        self.correct_trials = 0
+        self.target_side = None
+        self.target_deadline = 0.0
+        self.target_timeout_sec = 3.0
+        self.target_prompt_interval = 1.8
+        self.next_target_time = 0.0
+        self.feedback_state = None
+        self.feedback_until = 0.0
+        self.feedback_duration = 0.4
+        self.last_slow_prompt_time = 0.0
+
         # Scrollable GUI
         self.scrollable_frame = ctk.CTkScrollableFrame(root, width=880, height=720)
         self.scrollable_frame.pack(padx=20, pady=20, fill="both", expand=True)
@@ -72,6 +92,14 @@ class FootApp:
             text_color="#2563eb"
         )
         self.label_step_count.pack(pady=5)
+
+        self.label_target = ctk.CTkLabel(
+            self.scrollable_frame,
+            text="目標腳：--",
+            font=("Microsoft JhengHei", 18, "bold"),
+            text_color="#1f2937"
+        )
+        self.label_target.pack(pady=5)
         
         # 腳部位置顯示
         self.info_frame = ctk.CTkFrame(self.scrollable_frame)
@@ -137,16 +165,74 @@ class FootApp:
         if not self.running:
             self.detector = FootDetector()
             self.running = True
+            self.reset_metrics()
+            self.next_target_time = time.time()
+            self.choose_new_target(force=True)
             self.btn_toggle.configure(text="■ 停止偵測", fg_color="#ef4444", hover_color="#f87171")
             self.update_frame()
         else:
-            self.running = False
-            if self.detector:
-                self.detector.release()
-                self.detector = None
-            self.label_status.configure(text="狀態：已停止")
-            self.canvas.configure(image=self.blank_ctk_image)
-            self.btn_toggle.configure(text="▶ 啟動偵測", fg_color="#2cc985", hover_color="#34d399")
+            self.stop_tracking("狀態：已停止")
+
+    def stop_tracking(self, status_text="狀態：已停止"):
+        self.running = False
+        metrics = self.log_session_end()
+        if self.detector:
+            self.detector.release()
+            self.detector = None
+        self.label_status.configure(text=status_text)
+        self.label_target.configure(text="目標腳：--", text_color="#1f2937")
+        self.canvas.configure(image=self.blank_ctk_image)
+        self.btn_toggle.configure(text="▶ 啟動偵測", fg_color="#2cc985", hover_color="#34d399")
+        if metrics is not None:
+            avg_rt, accuracy, total_score, duration = metrics
+            rt_text = f"{avg_rt:.2f} 秒" if avg_rt is not None else "--"
+            messagebox.showinfo(
+                "本次訓練結果",
+                f"反應時間(平均)：{rt_text}\n命中率：{accuracy*100:.1f}%\n總分：{total_score}\n訓練時長：{duration:.1f} 秒"
+            )
+
+    def reset_metrics(self):
+        self.training_start_time = time.time()
+        self.reaction_times = []
+        self.total_trials = 0
+        self.correct_trials = 0
+
+    def log_session_end(self):
+        if self.training_start_time is None:
+            return None
+        duration = max(0.0, time.time() - self.training_start_time)
+        avg_rt = sum(self.reaction_times) / len(self.reaction_times) if self.reaction_times else None
+        accuracy = (self.correct_trials / self.total_trials) if self.total_trials else 0.0
+        self.session_logger.log_session(
+            module="foot",
+            mode="target_prompt",
+            avg_reaction_time_sec=avg_rt,
+            accuracy=accuracy,
+            total_score=self.step_count,
+            training_duration_sec=duration,
+            total_trials=self.total_trials,
+            correct_trials=self.correct_trials,
+        )
+        self.training_start_time = None
+        return avg_rt, accuracy, self.step_count, duration
+
+    def set_feedback(self, feedback):
+        self.feedback_state = feedback
+        self.feedback_until = time.time() + self.feedback_duration
+
+    def choose_new_target(self, force=False):
+        now = time.time()
+        if not force and now < self.next_target_time:
+            return
+        self.target_side = random.choice(["left", "right"])
+        self.target_deadline = now + self.target_timeout_sec
+        self.next_target_time = now + self.target_prompt_interval
+        if self.target_side == "left":
+            self.label_target.configure(text="目標腳：左腳", text_color="#ea580c")
+            self.voice_assistant.speak_async("請往左看")
+        else:
+            self.label_target.configure(text="目標腳：右腳", text_color="#2563eb")
+            self.voice_assistant.speak_async("請往右看")
 
     def reset_steps(self):
         """重置步數計數"""
@@ -154,6 +240,8 @@ class FootApp:
         self.left_foot_history.clear()
         self.right_foot_history.clear()
         self.label_step_count.configure(text="步數：0")
+        self.reset_metrics()
+        self.choose_new_target(force=True)
 
     def detect_step(self, foot_pos, history, foot_name):
         """
@@ -231,7 +319,18 @@ class FootApp:
             # 偵測步伐
             left_step = self.detect_step(left_pos, self.left_foot_history, 'left')
             right_step = self.detect_step(right_pos, self.right_foot_history, 'right')
-            
+
+            self.choose_new_target()
+
+            if self.target_side and time.time() > self.target_deadline:
+                self.total_trials += 1
+                self.set_feedback("error")
+                self.label_target.configure(text="目標腳：超時", text_color="#dc2626")
+                if time.time() - self.last_slow_prompt_time > 2.5:
+                    self.voice_assistant.speak_async("動作太慢，請加快")
+                    self.last_slow_prompt_time = time.time()
+                self.choose_new_target(force=True)
+
             if left_step or right_step:
                 self.step_count += 1
                 self.label_step_count.configure(text=f"步數：{self.step_count}")
@@ -244,6 +343,29 @@ class FootApp:
                 step_text = "左腳踏步!" if left_step else "右腳踏步!"
                 cv2.putText(frame, step_text, (self.frame_width//2 - 80, 50),
                            cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
+
+                if self.target_side:
+                    expected_left = self.target_side == "left"
+                    actual_left = left_step
+                    self.total_trials += 1
+                    if expected_left == actual_left:
+                        reaction_time = max(0.0, time.time() - (self.target_deadline - self.target_timeout_sec))
+                        self.reaction_times.append(reaction_time)
+                        self.correct_trials += 1
+                        self.set_feedback("success")
+                    else:
+                        self.set_feedback("error")
+                    self.choose_new_target(force=True)
+
+            if self.feedback_state is not None and time.time() <= self.feedback_until:
+                color = (0, 220, 0) if self.feedback_state == "success" else (0, 0, 220)
+                overlay = frame.copy()
+                cv2.rectangle(overlay, (0, 0), (self.frame_width, self.frame_height), color, -1)
+                frame = cv2.addWeighted(overlay, 0.16, frame, 0.84, 0)
+                marker_x = int(self.frame_width * (0.3 if self.target_side == "left" else 0.7))
+                cv2.circle(frame, (marker_x, 70), 36, color, 4)
+            elif self.feedback_state is not None:
+                self.feedback_state = None
             
             # 更新 GUI
             img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))

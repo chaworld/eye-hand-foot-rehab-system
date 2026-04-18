@@ -7,6 +7,7 @@ import numpy as np
 import time
 import os
 from eye_tracker import EyeTracker
+from voice_assistant import VoiceAssistant
 
 pygame.init()
 pygame.mixer.init()
@@ -41,6 +42,11 @@ water_sound = load_sound("water.mp3")
 TF_sound = load_sound("TF.mp3")
 toi_sound = load_sound("toi.mp3")
 RR_sound = load_sound("RR.mp3")
+success_sound = load_sound("bean.mp3")
+error_sound = load_sound("lose.mp3")
+voice_assistant = VoiceAssistant()
+last_voice_prompt_time = 0.0
+last_gaze_seen_time = time.time()
 
 # 建立功能與音效的對應關係（略過 None 的項目）
 function_sounds = {
@@ -101,6 +107,9 @@ grid_rects = []
 grid_start_time = None
 selected_index = None
 GAZE_HOLD_TIME = 3.0  
+feedback_until = 0.0
+feedback_index = None
+feedback_success = True
 
 # ---------------------------
 # 繪製九宮格
@@ -149,6 +158,17 @@ def highlight_grid(index, duration=1000, color="#54B0E4"):
                     tags="highlight")
     app.after(duration, lambda: (canvas.delete("highlight"), draw_grid()))
 
+
+def show_hit_feedback(index, success=True):
+    global feedback_until, feedback_index, feedback_success
+    feedback_until = time.time() + 0.45
+    feedback_index = index
+    feedback_success = success
+    if success and success_sound:
+        success_sound.play()
+    if (not success) and error_sound:
+        error_sound.play()
+
 # ---------------------------
 # 顯示說明書，支援自動關閉
 # ---------------------------
@@ -195,6 +215,7 @@ def toggle_grid_mode():
 def update_frame():
     global grid_start_time, selected_index, grid_mode
     global calibrated, calibration_samples, calibration_start_time, last_gaze_status, last_gaze
+    global last_voice_prompt_time, last_gaze_seen_time
 
     # 初始化檢查：如果畫布已經有尺寸且九宮格模式但沒有格子，則繪製九宮格
     if grid_mode and canvas.winfo_width() > 1 and canvas.winfo_height() > 1 and len(grid_rects) == 0:
@@ -228,10 +249,14 @@ def update_frame():
         if gaze is not None:
             gazeX, gazeY = gaze
             last_gaze = (gazeX, gazeY)
+            last_gaze_seen_time = time.time()
             # 除錯資訊：顯示當前眼球座標（可以移除此行以停止輸出）
             print(f"眼球座標: X={gazeX:.1f}, Y={gazeY:.1f}")
         else:
             last_gaze_status = "未偵測到臉部"
+            if time.time() - last_voice_prompt_time > 4.0:
+                voice_assistant.speak_async("動作太慢，請加快")
+                last_voice_prompt_time = time.time()
 
     if grid_mode:
         hover_index = None
@@ -258,10 +283,44 @@ def update_frame():
                         if action_name in function_sounds:
                             function_sounds[action_name].play()
                         highlight_grid(selected_index)
+                    show_hit_feedback(selected_index, success=True)
                 grid_start_time = None
         else:
+            if selected_index is not None and grid_start_time is not None and hover_index is not None:
+                show_hit_feedback(selected_index, success=False)
             selected_index = hover_index
             grid_start_time = None
+
+        if hover_index is not None and time.time() - last_voice_prompt_time > 3.5:
+            prompt_map = {
+                0: "請往左看",
+                1: "請往上看",
+                2: "請往右看",
+                6: "請往左看",
+                7: "請往下看",
+                8: "請往右看",
+            }
+            if hover_index in prompt_map:
+                voice_assistant.speak_async(prompt_map[hover_index])
+                last_voice_prompt_time = time.time()
+
+        if feedback_index is not None and time.time() <= feedback_until:
+            color = "#32CD32" if feedback_success else "#E53935"
+            scale = 1.08
+            x1, y1, x2, y2 = grid_rects[feedback_index]
+            cx = (x1 + x2) / 2
+            cy = (y1 + y2) / 2
+            w = (x2 - x1) * scale
+            h = (y2 - y1) * scale
+            nx1 = int(max(0, cx - w / 2))
+            ny1 = int(max(0, cy - h / 2))
+            nx2 = int(min(canvas.winfo_width(), cx + w / 2))
+            ny2 = int(min(canvas.winfo_height(), cy + h / 2))
+            canvas.delete("feedback")
+            canvas.create_rectangle(nx1, ny1, nx2, ny2, fill=color, outline=color, width=4, tags="feedback")
+        else:
+            canvas.delete("feedback")
+
         if calibrated and gazeX is None:
             label.configure(text=f"狀態：{last_gaze_status}")
     else:
