@@ -3,7 +3,9 @@ import os
 from pathlib import Path
 
 def generate_tts(text, filename, lang='zh-tw'):
-    cache_dir = Path("audio/tts_cache")
+    # 確保路徑相對於檔案本身所在的目錄
+    base_dir = Path(__file__).parent
+    cache_dir = base_dir / "audio" / "tts_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     file_path = cache_dir / filename
     print(f"Generating {file_path} for text: '{text}'")
