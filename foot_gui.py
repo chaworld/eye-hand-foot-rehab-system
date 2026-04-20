@@ -8,6 +8,7 @@ import time
 import pygame
 import os
 import random
+import threading
 from tkinter import messagebox
 from session_logger import SessionLogger
 from voice_assistant import VoiceAssistant
@@ -23,10 +24,16 @@ class FootApp:
         self.root = root
         self.root.title("腳步辨識復健系統")
         self.root.geometry("900x750")
-        self.root.wm_attributes("-topmost", 1)
+        try:
+            self.root.wm_attributes("-topmost", 1)
+        except Exception:
+            pass
 
-        self.frame_width = 640
-        self.frame_height = 480
+        self.base_frame_width = 640
+        self.base_frame_height = 480
+        self.display_frame_width = self.base_frame_width
+        self.display_frame_height = self.base_frame_height
+        self.text_bar_scale = 1.0
 
         self.detector = None
         self.running = False
@@ -43,16 +50,18 @@ class FootApp:
         self.step_threshold = 50  # 移動像素閾值
         
         # 初始化音效系統
-        pygame.mixer.init()
+        self.audio_ready = True
+        self._init_audio_with_timeout(timeout_sec=2.0)
         
         # 載入音效檔案
         audio_path = os.path.join(os.path.dirname(__file__), "audio")
         step_sound_path = os.path.join(audio_path, "bean.mp3")
-        if os.path.exists(step_sound_path):
+        if self.audio_ready and os.path.exists(step_sound_path):
             self.step_sound = pygame.mixer.Sound(step_sound_path)
         else:
             self.step_sound = None
-            print("⚠️ 找不到步伐音效檔")
+            if self.audio_ready:
+                print("⚠️ 找不到步伐音效檔")
 
         self.session_logger = SessionLogger()
         self.voice_assistant = VoiceAssistant()
@@ -154,16 +163,58 @@ class FootApp:
         )
         self.label_instructions.pack(pady=10)
 
+        self.base_fonts = {
+            self.label_title: ("Microsoft JhengHei", 25, "bold"),
+            self.label_status: ("Microsoft JhengHei", 20, "normal"),
+            self.label_step_count: ("Microsoft JhengHei", 22, "bold"),
+            self.label_target: ("Microsoft JhengHei", 18, "bold"),
+            self.label_left_foot: ("Microsoft JhengHei", 14, "normal"),
+            self.label_right_foot: ("Microsoft JhengHei", 14, "normal"),
+            self.btn_toggle: ("Microsoft JhengHei", 16, "normal"),
+            self.btn_reset: ("Microsoft JhengHei", 16, "normal"),
+            self.label_instructions: ("Microsoft JhengHei", 12, "normal"),
+        }
+
         # 建立空白影像
-        blank_image = Image.new('RGB', (self.frame_width, self.frame_height), color='lightgray')
+        blank_image = Image.new('RGB', (self.display_frame_width, self.display_frame_height), color='lightgray')
         self.blank_ctk_image = CTkImage(light_image=blank_image, dark_image=blank_image, 
-                                        size=(self.frame_width, self.frame_height))
+                                        size=(self.display_frame_width, self.display_frame_height))
         self.canvas.configure(image=self.blank_ctk_image)
+
+        self.apply_responsive_text_scale()
+
+    def _init_audio_with_timeout(self, timeout_sec=2.0):
+        state = {"error": None}
+
+        def init_worker():
+            try:
+                pygame.mixer.init()
+            except pygame.error as exc:
+                state["error"] = exc
+
+        worker = threading.Thread(target=init_worker, daemon=True)
+        worker.start()
+        worker.join(timeout=timeout_sec)
+
+        if worker.is_alive():
+            self.audio_ready = False
+            print("⚠️ 音效系統初始化逾時，已自動停用音效以避免卡住")
+            return
+
+        if state["error"] is not None:
+            self.audio_ready = False
+            print(f"⚠️ 音效系統初始化失敗: {state['error']}")
 
     def toggle_tracking(self):
         """切換偵測狀態"""
         if not self.running:
-            self.detector = FootDetector()
+            try:
+                self.detector = FootDetector()
+            except Exception as exc:
+                self.detector = None
+                self.label_status.configure(text="狀態：啟動失敗")
+                messagebox.showerror("腳步辨識啟動失敗", str(exc))
+                return
             self.running = True
             self.reset_metrics()
             self.next_target_time = time.time()
@@ -181,9 +232,11 @@ class FootApp:
             self.detector = None
         self.label_status.configure(text=status_text)
         self.label_target.configure(text="目標腳：--", text_color="#1f2937")
+        self.refresh_blank_image()
         self.canvas.configure(image=self.blank_ctk_image)
         self.btn_toggle.configure(text="▶ 啟動偵測", fg_color="#2cc985", hover_color="#34d399")
         if metrics is not None:
+            self.voice_assistant.speak_async("訓練結束")
             avg_rt, accuracy, total_score, duration = metrics
             rt_text = f"{avg_rt:.2f} 秒" if avg_rt is not None else "--"
             messagebox.showinfo(
@@ -229,10 +282,88 @@ class FootApp:
         self.next_target_time = now + self.target_prompt_interval
         if self.target_side == "left":
             self.label_target.configure(text="目標腳：左腳", text_color="#ea580c")
-            self.voice_assistant.speak_async("請往左看")
+            self.voice_assistant.speak_async("請踏左腳")
         else:
             self.label_target.configure(text="目標腳：右腳", text_color="#2563eb")
-            self.voice_assistant.speak_async("請往右看")
+            self.voice_assistant.speak_async("請踏右腳")
+
+    def on_window_resize(self, event):
+        return
+
+    def apply_responsive_text_scale(self):
+        scale = 1.0
+        text_scale = 1.0
+
+        for widget, (family, base_size, weight) in self.base_fonts.items():
+            scaled_size = int(max(12, min(220, round(base_size * text_scale))))
+            font_value = (family, scaled_size, weight) if weight != "normal" else (family, scaled_size)
+            widget.configure(font=font_value)
+
+        self.btn_toggle.configure(
+            width=max(150, int(150 * text_scale * 0.5)),
+            height=max(50, int(50 * text_scale * 0.45)),
+            corner_radius=max(20, int(20 * scale)),
+        )
+        self.btn_reset.configure(
+            width=max(150, int(150 * text_scale * 0.5)),
+            height=max(50, int(50 * text_scale * 0.45)),
+            corner_radius=max(20, int(20 * scale)),
+        )
+
+    def refresh_blank_image(self):
+        blank_image = Image.new('RGB', (self.display_frame_width, self.display_frame_height), color='lightgray')
+        self.blank_ctk_image = CTkImage(
+            light_image=blank_image,
+            dark_image=blank_image,
+            size=(self.display_frame_width, self.display_frame_height),
+        )
+
+    def get_canvas_display_size(self, frame_width, frame_height):
+        self.root.update_idletasks()
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+
+        if canvas_width <= 1:
+            canvas_width = max(320, self.scrollable_frame.winfo_width() - 80)
+        if canvas_height <= 1:
+            canvas_height = max(240, int(canvas_width * frame_height / max(1, frame_width)))
+
+        scale = min(canvas_width / frame_width, canvas_height / frame_height)
+        scale = max(0.2, scale)
+
+        display_w = max(320, int(frame_width * scale))
+        display_h = max(240, int(frame_height * scale))
+        return display_w, display_h
+
+    def draw_step_banner(self, frame, step_text, is_left_step):
+        frame_h, frame_w = frame.shape[:2]
+        bar_h = max(24, int(frame_h * 0.02 * self.text_bar_scale))
+        margin = max(8, int(frame_h * 0.01))
+        x1 = margin
+        x2 = frame_w - margin
+        y1 = margin
+        y2 = min(frame_h - margin, y1 + bar_h)
+        color = (0, 180, 70) if is_left_step else (0, 140, 210)
+
+        overlay = frame.copy()
+        cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
+        frame[:] = cv2.addWeighted(overlay, 0.75, frame, 0.25, 0)
+
+        font_scale = max(0.8, (frame_w / 640.0) * 0.11 * self.text_bar_scale)
+        thickness = max(2, int(2 * self.text_bar_scale))
+        text_size = cv2.getTextSize(step_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)[0]
+        text_x = max(x1 + 8, (frame_w - text_size[0]) // 2)
+        text_y = y1 + max(text_size[1] + 6, (bar_h + text_size[1]) // 2)
+        cv2.putText(
+            frame,
+            step_text,
+            (text_x, text_y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            font_scale,
+            (255, 255, 255),
+            thickness,
+            cv2.LINE_AA,
+        )
 
     def reset_steps(self):
         """重置步數計數"""
@@ -294,13 +425,18 @@ class FootApp:
     def update_frame(self):
         """更新影像幀"""
         if self.running and self.detector:
-            result = self.detector.get_frame()
+            try:
+                result = self.detector.get_frame()
+            except Exception as exc:
+                self.stop_tracking("狀態：執行失敗")
+                messagebox.showerror("腳步辨識執行失敗", str(exc))
+                return
             if result is None:
                 self.root.after(30, self.update_frame)
                 return
 
             frame, status, left_pos, right_pos, foot_boxes = result
-            frame = cv2.resize(frame, (self.frame_width, self.frame_height))
+            frame_h, frame_w = frame.shape[:2]
             
             # 更新歷史記錄
             self.left_foot_history.append(left_pos)
@@ -341,8 +477,7 @@ class FootApp:
                 
                 # 顯示步伐提示
                 step_text = "左腳踏步!" if left_step else "右腳踏步!"
-                cv2.putText(frame, step_text, (self.frame_width//2 - 80, 50),
-                           cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
+                self.draw_step_banner(frame, step_text, left_step)
 
                 if self.target_side:
                     expected_left = self.target_side == "left"
@@ -360,17 +495,22 @@ class FootApp:
             if self.feedback_state is not None and time.time() <= self.feedback_until:
                 color = (0, 220, 0) if self.feedback_state == "success" else (0, 0, 220)
                 overlay = frame.copy()
-                cv2.rectangle(overlay, (0, 0), (self.frame_width, self.frame_height), color, -1)
+                cv2.rectangle(overlay, (0, 0), (frame_w, frame_h), color, -1)
                 frame = cv2.addWeighted(overlay, 0.16, frame, 0.84, 0)
-                marker_x = int(self.frame_width * (0.3 if self.target_side == "left" else 0.7))
-                cv2.circle(frame, (marker_x, 70), 36, color, 4)
+                marker_x = int(frame_w * (0.3 if self.target_side == "left" else 0.7))
+                marker_y = max(40, int(frame_h * 0.15))
+                marker_radius = max(20, int(frame_h * 0.075))
+                marker_thickness = max(3, int(frame_h * 0.008))
+                cv2.circle(frame, (marker_x, marker_y), marker_radius, color, marker_thickness)
             elif self.feedback_state is not None:
                 self.feedback_state = None
             
             # 更新 GUI
+            self.display_frame_width, self.display_frame_height = self.get_canvas_display_size(frame_w, frame_h)
+            frame = cv2.resize(frame, (self.display_frame_width, self.display_frame_height))
             img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             ctk_img = CTkImage(light_image=img, dark_image=img, 
-                              size=(self.frame_width, self.frame_height))
+                              size=(self.display_frame_width, self.display_frame_height))
             self.canvas.configure(image=ctk_img)
             self.canvas._image = ctk_img  # 保持引用防止被垃圾回收
 
@@ -422,8 +562,23 @@ class FootApp:
 
 
 def main():
+    print("[FootGUI] 啟動中...")
     root = ctk.CTk()
+    root.withdraw()
     app = FootApp(root)
+
+    def ensure_window_visible():
+        try:
+            root.deiconify()
+            root.lift()
+            root.focus_force()
+            root.attributes("-topmost", 1)
+            root.after(400, lambda: root.attributes("-topmost", 0))
+            print("[FootGUI] 視窗已建立")
+        except Exception as exc:
+            print(f"[FootGUI] 視窗顯示警告: {exc}")
+
+    root.after(120, ensure_window_visible)
     
     def on_closing():
         if app.running and app.detector:

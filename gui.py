@@ -213,6 +213,7 @@ class App:
         self.label_status.configure(text=status_text)
         self.btn_toggle.configure(text="▶ 啟動偵測", fg_color="#2cc985", hover_color="#2cc985")
         if metrics is not None:
+            self.voice_assistant.speak_async("訓練結束")
             avg_rt, accuracy, total_score, duration = metrics
             rt_text = f"{avg_rt:.2f} 秒" if avg_rt is not None else "--"
             messagebox.showinfo(

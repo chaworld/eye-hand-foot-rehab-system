@@ -36,3 +36,7 @@ Thumbs.db
 
 # Project-specific
 release_code/
+
+# Audio and Logs
+audio/
+logs/

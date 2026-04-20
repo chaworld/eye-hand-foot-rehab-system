@@ -228,6 +228,9 @@ def update_frame():
         if raw is not None:
             calibration_samples.append(raw)
             last_gaze_status = "校準中：請看螢幕中心"
+            if time.time() - last_voice_prompt_time > 5.0:
+                voice_assistant.speak_async("請看螢幕中心")
+                last_voice_prompt_time = time.time()
         else:
             last_gaze_status = "校準中：未偵測到臉部，請對準鏡頭"
 

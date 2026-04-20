@@ -5,6 +5,8 @@ from mediapipe.tasks.python import vision
 import numpy as np
 import os
 import urllib.request
+import socket
+from urllib.error import URLError
 
 
 class LowPassFilter:
@@ -102,6 +104,8 @@ class FootDetector:
 
     def __init__(self, camera_index=0):
         self.cap = cv2.VideoCapture(camera_index)
+        if not self.cap.isOpened():
+            raise RuntimeError("無法開啟攝影機，請確認攝影機是否被其他程式占用。")
         
         # 設定攝像頭參數以提升效能
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -116,7 +120,7 @@ class FootDetector:
         if not os.path.exists(model_path):
             print("正在下載姿態檢測模型...")
             url = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
-            urllib.request.urlretrieve(url, model_path)
+            self._download_with_timeout(url, model_path, timeout=25)
             print("模型下載完成!")
         
         # 使用 MediaPipe Tasks API
@@ -141,6 +145,26 @@ class FootDetector:
         
         # 可見性閾值
         self.visibility_threshold = 0.5
+
+    def _download_with_timeout(self, url, target_path, timeout=25):
+        original_timeout = socket.getdefaulttimeout()
+        tmp_path = f"{target_path}.tmp"
+        try:
+            socket.setdefaulttimeout(timeout)
+            urllib.request.urlretrieve(url, tmp_path)
+            os.replace(tmp_path, target_path)
+        except (URLError, TimeoutError, OSError) as exc:
+            if os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
+            raise RuntimeError(
+                "無法下載腳步辨識模型。請先確認網路連線，或手動下載後放到 "
+                f"{target_path}"
+            ) from exc
+        finally:
+            socket.setdefaulttimeout(original_timeout)
 
     def _get_foot_center(self, landmarks, side, w, h):
         """

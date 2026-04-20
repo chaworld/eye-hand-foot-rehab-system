@@ -17,6 +17,10 @@
    python app.py
    ```
 
+## 音檔說明
+本專案所需的音檔請至以下連結下載，並將解壓縮後的檔案放置於專案根目錄下的 `audio/` 資料夾中。
+- **下載連結**：[Google Drive](https://drive.google.com/drive/folders/1EOCWzrnf-c0aiYdZkpHBCTGGBF6aA4vF?usp=sharing)
+
 ## 技術棧
 - Python 3.x
 - OpenCV
