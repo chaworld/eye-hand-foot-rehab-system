@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>復健暖身訓練</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Sans+TC:wght@300;400;500&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body data-exercise="knee_raise">
+    <div class="page">
+
+        <header class="page-header">
+            <div class="header-rule double"></div>
+            <div class="header-inner">
+                <h1 class="display-title">復健暖身訓練</h1>
+                <p class="subtitle-label">REHABILITATION WARM-UP SYSTEM</p>
+            </div>
+            <div class="header-rule"></div>
+        </header>
+
+        <main class="dashboard">
+
+            <section class="exercise-bar">
+                <p class="section-label">SELECT EXERCISE</p>
+                <div class="exercise-selector">
+                    <button class="exercise-card active" data-exercise="knee_raise">
+                        <span class="card-number">01</span>
+                        <span class="card-body">
+                            <span class="card-title">站姿抬膝</span>
+                            <span class="card-subtitle">STANDING KNEE RAISE</span>
+                            <span class="card-desc">單手扶持固定物，將膝蓋向上抬起靠近胸口，雙腿交替進行</span>
+                        </span>
+                    </button>
+                    <button class="exercise-card" data-exercise="hip_circle">
+                        <span class="card-number">02</span>
+                        <span class="card-body">
+                            <span class="card-title">髖部畫圈</span>
+                            <span class="card-subtitle">HIP CIRCLE MOVEMENT</span>
+                            <span class="card-desc">模擬跨越障礙物，大腿抬高後向外打開，再循原軌跡收回</span>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <div class="dashboard-grid">
+
+                <section class="video-panel">
+                    <p class="section-label">LIVE FEED</p>
+                    <div class="video-container">
+                        <img id="video-feed" alt="Camera feed">
+                        <div class="video-status" id="video-status">等待攝影機連線...</div>
+                    </div>
+                </section>
+
+                <aside class="control-panel">
+
+                    <div class="panel-section">
+                        <p class="section-label">PERFORMANCE</p>
+                        <div class="metrics-row" id="metrics-row">
+                            <div class="metric-block">
+                                <span class="metric-number" id="rep-count">0</span>
+                                <span class="metric-label">REPS</span>
+                            </div>
+                            <div class="metric-divider"></div>
+                            <div class="metric-block">
+                                <span class="metric-number" id="current-angle">&mdash;</span>
+                                <span class="metric-label">ELEVATION</span>
+                            </div>
+                            <div class="metric-divider abduction-only"></div>
+                            <div class="metric-block abduction-only">
+                                <span class="metric-number" id="current-abduction">&mdash;</span>
+                                <span class="metric-label">ABDUCTION</span>
+                            </div>
+                            <div class="metric-divider"></div>
+                            <div class="metric-block">
+                                <span class="metric-number metric-quality" id="rep-quality">&mdash;</span>
+                                <span class="metric-label">QUALITY</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <p class="section-label">PHASE</p>
+                        <div class="phase-track" id="phase-track"></div>
+                    </div>
+
+                    <div class="panel-section">
+                        <p class="section-label">ACTIVE SIDE</p>
+                        <div class="side-indicator">
+                            <span class="side-dot" id="side-left">L</span>
+                            <span class="side-name" id="side-label">LEFT</span>
+                            <span class="side-dot" id="side-right">R</span>
+                        </div>
+                    </div>
+
+                    <div class="panel-section feedback-block">
+                        <p class="section-label">FORM FEEDBACK</p>
+                        <div class="feedback-area" id="feedback-area">
+                            <p class="feedback-text" id="feedback-text">準備就緒</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-section controls-block">
+                        <p class="section-label">CONTROLS</p>
+                        <div class="controls-row">
+                            <button class="btn-primary" id="btn-start">START</button>
+                            <button class="btn-secondary" id="btn-stop" disabled>STOP</button>
+                            <div class="rep-setting">
+                                <span class="setting-label">REPS</span>
+                                <input type="number" id="target-reps" value="10" min="1" max="30" class="setting-input">
+                            </div>
+                        </div>
+                    </div>
+
+                </aside>
+
+            </div>
+
+        </main>
+
+        <footer class="page-footer">
+            <div class="footer-rule"></div>
+            <p class="footer-text">智慧復健及眼球詮釋辨識系統 &mdash; 暖身訓練模組</p>
+        </footer>
+
+        <div class="summary-overlay" id="summary-overlay">
+            <div class="summary-box">
+                <p class="section-label">SESSION COMPLETE</p>
+                <h2 class="summary-title">訓練結束</h2>
+                <div class="summary-metrics">
+                    <div class="summary-item">
+                        <span class="metric-number" id="summary-reps">0</span>
+                        <span class="metric-label">TOTAL REPS</span>
+                    </div>
+                    <div class="metric-divider"></div>
+                    <div class="summary-item">
+                        <span class="metric-number" id="summary-duration">0</span>
+                        <span class="metric-label">SECONDS</span>
+                    </div>
+                    <div class="metric-divider"></div>
+                    <div class="summary-item">
+                        <span class="metric-number" id="summary-compliance">0</span>
+                        <span class="metric-label">FORM %</span>
+                    </div>
+                </div>
+                <div class="rep-report" id="rep-report"></div>
+                <button class="btn-primary" id="btn-close-summary">CLOSE</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

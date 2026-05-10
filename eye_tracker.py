@@ -35,8 +35,8 @@ class EyeTracker:
         self.calibration_offset = np.array([0.0, 0.0], dtype=np.float32)
         # 縮放因子：眼球移動範圍很小，需要放大才能覆蓋整個螢幕
         # 這個值可以根據實際使用情況調整，數值越大靈敏度越高
-        self.scale_x = 2.5  # 水平方向放大倍數
-        self.scale_y = 3.0  # 垂直方向放大倍數（眼球上下移動範圍更小，需要更大的放大）
+        self.scale_x = 4.0  # 水平方向放大倍數
+        self.scale_y = 6.0  # 垂直方向放大倍數（眼球上下移動範圍更小，需要更大的放大）
         
         self.prev_gaze = None
         self.smoothing = 0.6
@@ -52,6 +52,42 @@ class EyeTracker:
         if points.size == 0:
             return None
         return points.mean(axis=0)
+
+    def _eye_ratio(self, landmarks, iris_idx, el, er, et, eb, w, h):
+        """
+        計算虹膜在眼眶內的相對比例座標。
+        ratio_x ≈ 0.5 表示水平居中（正視前方）
+        ratio_y ≈ 0.5 表示垂直居中
+        完全不受頭部平移或縮放影響。
+
+        Args:
+            landmarks: MediaPipe face landmarks list
+            iris_idx:  虹膜 landmark index 列表
+            el, er:    眼眶左/右角 index（水平方向）
+            et, eb:    眼眶上/下緣 index（垂直方向）
+            w, h:      frame 寬高（pixel）
+        """
+        def pt(i):
+            return np.array([landmarks[i].x * w, landmarks[i].y * h], dtype=np.float32)
+
+        iris  = self._iris_center(landmarks, iris_idx, w, h)
+        eye_l = pt(el)
+        eye_r = pt(er)
+        eye_t = pt(et)
+        eye_b = pt(eb)
+
+        eye_w_vec = eye_r - eye_l
+        eye_h_vec = eye_b - eye_t
+        eye_w     = np.linalg.norm(eye_w_vec)
+        eye_h     = np.linalg.norm(eye_h_vec)
+
+        if eye_w < 1e-6 or eye_h < 1e-6:
+            return 0.5, 0.5
+
+        offset  = iris - eye_l
+        ratio_x = float(np.dot(offset, eye_w_vec) / (eye_w ** 2))
+        ratio_y = float(np.dot(offset, eye_h_vec) / (eye_h ** 2))
+        return ratio_x, ratio_y
 
     def get_raw_gaze(self):
         ret, frame = self.cap.read()
@@ -77,9 +113,22 @@ class EyeTracker:
         if right_center is None or left_center is None:
             return None
 
-        iris_center = (right_center + left_center) / 2.0
-        raw_x = (iris_center[0] / w) * self.screen_width
-        raw_y = (iris_center[1] / h) * self.screen_height
+        # --- 眼眶相對比例法（頭部移動不影響結果）---
+        # 左眼眼眶 landmark：33=鼻側角, 133=耳側角, 159=上眼瞼, 145=下眼瞼
+        lx, ly = self._eye_ratio(landmarks,
+            self.left_iris_idx, 33, 133, 159, 145, w, h)
+
+        # 右眼眼眶 landmark：362=鼻側角, 263=耳側角, 386=上眼瞼, 374=下眼瞼
+        rx, ry = self._eye_ratio(landmarks,
+            self.right_iris_idx, 362, 263, 386, 374, w, h)
+
+        # 雙眼平均，提升穩定性
+        ratio_x = (lx + rx) / 2.0
+        ratio_y = (ly + ry) / 2.0
+
+        # 比例 ~0.5 = 正視前方，映射至螢幕像素座標
+        raw_x = ratio_x * self.screen_width
+        raw_y = ratio_y * self.screen_height
 
         raw = np.array([raw_x, raw_y], dtype=np.float32)
         if self.prev_gaze is None:

@@ -9,7 +9,7 @@ from pathlib import Path
 
 root = ctk.CTk()
 root.title("智慧復健及眼球詮釋辨識系統")
-root.geometry("400x400")
+root.geometry("400x480")
 
 def open_game():
     game_path = Path(__file__).parent / "gui_module.py"
@@ -23,6 +23,10 @@ def open_foot():
     foot_path = Path(__file__).parent / "foot_gui.py"
     subprocess.Popen([sys.executable, str(foot_path)])
 
+def open_warmup():
+    warmup_path = Path(__file__).parent / "warmup_rehab" / "server.py"
+    subprocess.Popen([sys.executable, str(warmup_path)])
+
 
 label = ctk.CTkLabel(root, text="智慧復健及眼球詮釋辨識系統", font=("Microsoft JhengHei", 20))
 label.pack(pady=20)
@@ -34,6 +38,9 @@ btn = ctk.CTkButton(root, text="手部辨識復健系統",font=("Microsoft Jheng
 btn.pack(pady=20)
 
 btn = ctk.CTkButton(root, text="腳步辨識復健系統",font=("Microsoft JhengHei", 15),command=open_foot, width=200, height=50, corner_radius=25)
+btn.pack(pady=20)
+
+btn = ctk.CTkButton(root, text="暖身運動復健系統",font=("Microsoft JhengHei", 15),command=open_warmup, width=200, height=50, corner_radius=25)
 btn.pack(pady=20)
 
 root.mainloop()

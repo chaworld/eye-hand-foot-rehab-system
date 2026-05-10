@@ -1,0 +1,698 @@
+:root {
+    --bg-page: #FAF8F5;
+    --bg-panel: #F5F2EC;
+    --ink-primary: #1B2A4A;
+    --ink-secondary: #3D5A80;
+    --ink-muted: #8A9AB5;
+    --ink-ghost: #C8D1E0;
+    --accent-success: #2D6A4F;
+    --accent-warning: #9B2226;
+    --rule-strong: rgba(27, 42, 74, 0.92);
+    --rule-soft: rgba(27, 42, 74, 0.18);
+}
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 300;
+    color: var(--ink-primary);
+    background: var(--bg-page);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ── Page Container ── */
+
+.page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem 1.25rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ── Header / Footer ── */
+
+.page-header {
+    text-align: center;
+    padding-bottom: 0.85rem;
+    margin-bottom: 1.25rem;
+}
+
+.header-inner {
+    padding: 0.55rem 0 0.45rem;
+}
+
+.page-footer {
+    text-align: center;
+    padding-top: 0.6rem;
+    margin-top: 1rem;
+}
+
+.header-rule,
+.footer-rule {
+    height: 1px;
+    background: var(--rule-strong);
+    margin: 0;
+}
+
+.header-rule.double {
+    border-top: 1px solid var(--rule-strong);
+    height: 0;
+    margin-bottom: 4px;
+    background: none;
+}
+
+.header-rule.double::after {
+    content: '';
+    display: block;
+    height: 1px;
+    background: var(--rule-strong);
+    margin-top: 4px;
+}
+
+.display-title {
+    font-family: 'Noto Serif TC', 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: 2.2rem;
+    color: var(--ink-primary);
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    margin-bottom: 0.3rem;
+}
+
+.subtitle-label {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 400;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    color: var(--ink-muted);
+}
+
+
+/* ── Dashboard Layout ── */
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    flex: 1;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 1.75rem;
+    align-items: start;
+}
+
+.panel-section {
+    padding: 0.85rem 0 0.85rem;
+    border-bottom: 1px solid var(--rule-soft);
+}
+
+.panel-section:first-child {
+    padding-top: 0;
+}
+
+.panel-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+
+/* ── Section Labels ── */
+
+.section-label {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 500;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 3.5px;
+    color: var(--ink-muted);
+    margin-bottom: 0.6rem;
+}
+
+.video-panel > .section-label,
+.exercise-bar > .section-label {
+    margin-bottom: 0.55rem;
+}
+
+.footer-text {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 400;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 3.5px;
+    color: var(--ink-muted);
+    padding-top: 0.6rem;
+}
+
+
+/* ── Exercise Cards ── */
+
+.exercise-bar {
+    margin-bottom: 0;
+}
+
+.exercise-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.exercise-card {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.85rem 1.1rem;
+    border: 1px solid var(--ink-ghost);
+    border-left: 3px solid var(--ink-ghost);
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+    text-align: left;
+    font-family: inherit;
+}
+
+.exercise-card:hover {
+    border-color: var(--ink-secondary);
+    border-left-color: var(--ink-secondary);
+}
+
+.exercise-card.active {
+    border-color: var(--ink-primary);
+    border-left: 3px solid var(--ink-primary);
+    background: var(--bg-panel);
+}
+
+.card-number {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.85rem;
+    color: var(--ink-ghost);
+    line-height: 1;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.exercise-card.active .card-number {
+    color: var(--ink-secondary);
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.card-title {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 1.15rem;
+    color: var(--ink-primary);
+    line-height: 1.15;
+}
+
+.card-subtitle {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 400;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--ink-muted);
+}
+
+.card-desc {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 300;
+    font-size: 0.85rem;
+    color: var(--ink-secondary);
+    line-height: 1.45;
+    margin-top: 0.2rem;
+}
+
+
+/* ── Video Feed ── */
+
+.video-container {
+    position: relative;
+    width: 100%;
+    max-height: 480px;
+    border: 1px solid var(--ink-ghost);
+    background: #F0EDE8;
+    line-height: 0;
+    aspect-ratio: 4 / 3;
+}
+
+.video-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.video-status {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 300;
+    font-size: 0.95rem;
+    color: var(--ink-muted);
+    letter-spacing: 1px;
+}
+
+
+/* ── Metrics ── */
+
+.metrics-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 0.6rem;
+}
+
+.metric-block,
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.metric-number {
+    font-family: 'Playfair Display', 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 3rem;
+    color: var(--ink-primary);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+.metric-quality {
+    font-size: 1.45rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 0.55rem;
+}
+
+.metric-label {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 500;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--ink-muted);
+    text-align: center;
+}
+
+.metric-divider {
+    width: 1px;
+    background: var(--rule-soft);
+    align-self: stretch;
+    flex-shrink: 0;
+}
+
+
+/* knee_raise hides abduction column */
+
+body[data-exercise="knee_raise"] .abduction-only {
+    display: none;
+}
+
+
+/* ── Side Indicator ── */
+
+.side-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+}
+
+.side-dot {
+    width: 2.4rem;
+    height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--ink-ghost);
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--ink-ghost);
+    transition: all 0.3s;
+}
+
+.side-dot.active {
+    border-color: var(--ink-primary);
+    color: var(--bg-page);
+    background: var(--ink-primary);
+}
+
+.side-name {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: var(--ink-primary);
+    min-width: 4.5rem;
+    text-align: center;
+}
+
+
+/* ── Phase Track ── */
+
+.phase-track {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    padding: 0.15rem 0 0.05rem;
+}
+
+.phase-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0.6rem;
+    position: relative;
+}
+
+.phase-dot-indicator {
+    width: 9px;
+    height: 9px;
+    border: 1px solid var(--ink-muted);
+    background: transparent;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s;
+}
+
+.phase-step.active .phase-dot-indicator {
+    background: var(--ink-primary);
+    border-color: var(--ink-primary);
+}
+
+.phase-step.done .phase-dot-indicator {
+    background: var(--ink-ghost);
+    border-color: var(--ink-ghost);
+}
+
+.phase-name {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 400;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+}
+
+.phase-step.active .phase-name {
+    color: var(--ink-primary);
+    font-weight: 500;
+}
+
+.phase-connector {
+    width: 1.4rem;
+    height: 1px;
+    background: var(--rule-soft);
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+
+
+/* ── Feedback ── */
+
+.feedback-block {
+    flex: 1;
+}
+
+.feedback-area {
+    padding: 0.9rem 1.2rem;
+    border-left: 3px solid var(--accent-success);
+    background: var(--bg-panel);
+    transition: border-color 0.3s, background-color 0.3s;
+    min-height: 3.4rem;
+    display: flex;
+    align-items: center;
+}
+
+.feedback-area.warning {
+    border-left-color: var(--accent-warning);
+}
+
+.feedback-text {
+    font-family: 'Noto Serif TC', 'Noto Sans TC', sans-serif;
+    font-weight: 400;
+    font-size: 1.4rem;
+    color: var(--ink-primary);
+    line-height: 1.45;
+    letter-spacing: 0.02em;
+}
+
+.feedback-text.warning {
+    color: var(--accent-warning);
+    font-weight: 700;
+}
+
+
+/* ── Controls ── */
+
+.controls-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 3.5px;
+    padding: 0.75rem 1.6rem;
+    border: 1px solid var(--ink-primary);
+    border-radius: 0;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, opacity 0.2s;
+}
+
+.btn-primary {
+    background: var(--ink-primary);
+    color: var(--bg-page);
+}
+
+.btn-primary:hover {
+    background: var(--ink-secondary);
+    border-color: var(--ink-secondary);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--ink-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--ink-primary);
+    color: var(--bg-page);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.btn-primary:disabled:hover {
+    background: var(--ink-primary);
+}
+
+.btn-secondary:disabled:hover {
+    background: transparent;
+    color: var(--ink-primary);
+}
+
+.rep-setting {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-left: auto;
+}
+
+.setting-label {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 500;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--ink-muted);
+}
+
+.setting-input {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    width: 3rem;
+    text-align: center;
+    border: none;
+    border-bottom: 1px solid var(--ink-primary);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink-primary);
+    outline: none;
+    padding: 0.15rem 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.setting-input:focus {
+    border-bottom-width: 2px;
+}
+
+
+/* ── Summary Overlay ── */
+
+.summary-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(250, 248, 245, 0.95);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.summary-overlay.visible {
+    display: flex;
+}
+
+.summary-box {
+    text-align: center;
+    padding: 3rem 2.5rem;
+    border: 1px solid var(--ink-primary);
+    background: var(--bg-page);
+    max-width: 520px;
+    width: 90%;
+}
+
+.summary-title {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 2.1rem;
+    color: var(--ink-primary);
+    margin: 1.2rem 0 2rem;
+}
+
+.summary-metrics {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 1.25rem;
+    margin-bottom: 2.4rem;
+}
+
+.summary-metrics .metric-number {
+    font-size: 2.6rem;
+}
+
+.rep-report {
+    margin: 1.2rem 0 0.8rem;
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.rep-report-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--text-muted, #888);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.rep-report-all-ok {
+    font-size: 0.95rem;
+    color: #4caf50;
+    text-align: center;
+    padding: 0.4rem 0;
+}
+
+.rep-report-row {
+    font-size: 0.85rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.rep-report-ok {
+    color: #4caf50;
+}
+
+.rep-report-error {
+    color: #e57373;
+}
+
+
+/* ── Compact Viewport (≤900px tall, ≤1280px wide) ── */
+
+@media (max-width: 1180px) {
+    .dashboard-grid {
+        grid-template-columns: minmax(0, 1fr) 380px;
+        gap: 1.4rem;
+    }
+
+    .metric-number {
+        font-size: 2.6rem;
+    }
+
+    .feedback-text {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-height: 860px) {
+    .page {
+        padding: 1rem 1.75rem 0.75rem;
+    }
+
+    .display-title {
+        font-size: 1.85rem;
+    }
+
+    .page-header {
+        padding-bottom: 0.55rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .panel-section {
+        padding: 0.7rem 0;
+    }
+
+    .metric-number {
+        font-size: 2.5rem;
+    }
+}

@@ -40,3 +40,10 @@ release_code/
 # Audio and Logs
 audio/
 logs/
+
+# Testing
+.pytest_cache/
+
+# Claude Code (local settings & plugins, not project rules)
+.claude/settings.local.json
+.claude/skills/
