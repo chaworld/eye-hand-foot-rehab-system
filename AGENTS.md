@@ -123,12 +123,25 @@ python warmup_rehab/detector.py  # 暖身姿勢偵測獨立測試 (按 q 結束)
 - 提交訊息建議格式：`type(scope): summary`
 - 常用 type：`feat`、`fix`、`refactor`、`docs`、`chore`。
 - 不得覆蓋或還原非本次任務的既有變更。
+- 提交訊息除了type 要使用中文
 
 ### 7. 文件同步
 - 需求、流程或操作方式有變更時，必須同步更新：
   - `README.md`
   - `docs/代辦.md`（如影響待辦）
   - `docs/部屬步驟.md`（如影響部署）
+  - 修改下列模組時，**必須同步維護對應測試檔**，並確保 `pytest` 全綠後再提交。
+
+| 測試檔 | 覆蓋模組 | 主要測試類別 |
+|--------|---------|------------|
+| `tests/test_hip_circle.py` | `warmup_rehab/exercises.py`（`HipCircleExercise`） | phase 轉換、計次邏輯、`posture_result` 信號、`_rep_log` 檢查節點、姿勢錯誤回報 |
+
+### 尚未建立測試的模組（新增功能時需補）
+
+- `warmup_rehab/exercises.py`：`KneeRaiseExercise` phase 轉換、計次邏輯
+- `warmup_rehab/detector.py`：`compute_thigh_elevation`、`compute_abduction`、`compute_trunk_lean`、`compute_lateral_displacement`
+- `voice_assistant.py`：`VoiceAssistant._build_cache_filename`
+- `session_logger.py`：`SessionLogger.log_session`
 
 ### 8. AI Agent 額外規則
 - 修改前先閱讀相關檔案，避免盲改。
